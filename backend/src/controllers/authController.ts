@@ -3,6 +3,7 @@ import type { Request, Response } from "express";
 import asyncHandler from "../utils/asyncHandler.js";
 import { registerUser } from "../services/authService.js";
 import { loginUser } from "../services/loginService.js";
+import User from "../models/User.js";
 
 export const register = asyncHandler(
   async (req: Request, res: Response) => {
@@ -91,6 +92,46 @@ export const logout = asyncHandler(
     return res.status(200).json({
       success: true,
       message: "Logout successful",
+    });
+  }
+);
+
+// getCurrentUserController.ts
+export const getCurrentUser = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.session.userId;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Authentication required",
+      });
+    }
+
+    const user = await User.findById(userId)
+      .select(
+        "name email phone role status emailVerified customerType businessName createdAt updatedAt"
+      )
+      .lean();
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User account not found",
+      });
+    }
+
+    if (user.status !== "ACTIVE") {
+      return res.status(403).json({
+        success: false,
+        message: "Your account is not active",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Current user fetched successfully",
+      data: { user },
     });
   }
 );
