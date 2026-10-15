@@ -5,8 +5,8 @@ import helmet from "helmet";
 import mongoose from "mongoose";
 
 import { env } from "./config/env.js";
-import notFound from "./middleware/notFound.js";
-import errorHandler from "./middleware/errorHandler.js";
+import notFound from "./middlewares/notFound.js";
+import errorHandler from "./middlewares/errorHandler.js";
 import authRoutes from "./routes/authRoutes.js";
 import { sessionMiddleware } from "./config/session.js";
 const app = express();

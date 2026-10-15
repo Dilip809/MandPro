@@ -1,9 +1,10 @@
 
 import { Router } from "express";
-import { validateRequest } from "../middleware/validateRequest.js";
+import { validateRequest } from "../middlewares/validateRequest.js";
 import { registerSchema } from "../validators/authValidator.js";
-import { register } from "../controllers/authController.js";
-import { registerRateLimiter } from "../middleware/authRateLimiter.js";
+import { login, register } from "../controllers/authController.js";
+import { loginRateLimiter, registerRateLimiter } from "../middlewares/authRateLimiter.js";
+import { loginSchema } from "../validators/loginValidator.js";
 
 const router = Router();
 
@@ -13,5 +14,13 @@ router.post(
   validateRequest(registerSchema),
   register
 );
+
+router.post(
+  "/login",
+  loginRateLimiter,
+  validateRequest(loginSchema),
+  login
+);
+
 
 export default router;
