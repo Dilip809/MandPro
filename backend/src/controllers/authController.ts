@@ -62,3 +62,35 @@ export const login = asyncHandler(
     });
   }
 );
+
+
+// logoutController.ts
+export const logout = asyncHandler(
+  async (req: Request, res: Response) => {
+    await new Promise<void>((resolve, reject) => {
+      req.session.destroy((error) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+
+    const cookieName =
+      process.env.SESSION_COOKIE_NAME ?? "mandipro.sid";
+
+    res.clearCookie(cookieName, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logout successful",
+    });
+  }
+);
