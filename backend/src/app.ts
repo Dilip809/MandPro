@@ -8,6 +8,7 @@ import { env } from "./config/env.js";
 import notFound from "./middleware/notFound.js";
 import errorHandler from "./middleware/errorHandler.js";
 import authRoutes from "./routes/authRoutes.js";
+import { sessionMiddleware } from "./config/session.js";
 const app = express();
 
 app.disable("x-powered-by");
@@ -24,6 +25,7 @@ app.use(
 app.use(express.json({ limit: "1mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(sessionMiddleware);
 
 app.get("/api/health", (_req, res) => {
   const databaseConnected =
@@ -37,6 +39,7 @@ app.get("/api/health", (_req, res) => {
     database: databaseConnected ? "connected" : "disconnected",
   });
 });
+
 
 app.use("/api/auth", authRoutes);
 
