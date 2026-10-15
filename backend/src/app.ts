@@ -7,7 +7,7 @@ import mongoose from "mongoose";
 import { env } from "./config/env.js";
 import notFound from "./middleware/notFound.js";
 import errorHandler from "./middleware/errorHandler.js";
-
+import authRoutes from "./routes/authRoutes.js";
 const app = express();
 
 app.disable("x-powered-by");
@@ -37,6 +37,8 @@ app.get("/api/health", (_req, res) => {
     database: databaseConnected ? "connected" : "disconnected",
   });
 });
+
+app.use("/api/auth", authRoutes);
 
 // Unknown routes must reach the 404 middleware.
 app.use(notFound);
