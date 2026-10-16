@@ -38,3 +38,14 @@ export const createProductSchema = z
 export type CreateProductInput = z.infer<
   typeof createProductSchema
 >;
+
+// Update product schema allows partial updates, but at least one field must be provided
+export const updateProductSchema = createProductSchema
+  .partial()
+  .strict()
+  .refine(
+    (data) => Object.keys(data).length > 0,
+    "At least one product field must be provided"
+  );
+
+export type UpdateProductInput = z.infer<typeof updateProductSchema>;

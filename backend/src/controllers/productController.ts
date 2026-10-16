@@ -3,7 +3,7 @@ import type { RequestHandler } from "express";
 import asyncHandler from "../utils/asyncHandler.js";
 import HttpError from "../utils/HttpError.js";
 import Product from "../models/Product.js";
-import type { CreateProductInput } from "../validators/productValidator.js";
+import type { CreateProductInput, UpdateProductInput } from "../validators/productValidator.js";
 import {
     PRODUCT_UNITS,
     type ProductUnit,
@@ -228,6 +228,67 @@ export const getMyProducts: RequestHandler = asyncHandler(
           limit,
           total,
           totalPages: Math.ceil(total / limit),
+        },
+      },
+    });
+  }
+);
+
+
+// Private: update a product of the authenticated seller
+export const updateProduct: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const authUser = req.authUser;
+
+    if (!authUser) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    const productId = req.params.id;
+
+    if (
+      typeof productId !== "string" ||
+      !Types.ObjectId.isValid(productId)
+    ) {
+      throw new HttpError(400, "Invalid product ID");
+    }
+
+    const input = req.body as UpdateProductInput;
+
+    const product = await Product.findOneAndUpdate(
+      {
+        _id: new Types.ObjectId(productId),
+        sellerId: new Types.ObjectId(authUser.id),
+      },
+      {
+        $set: input,
+      },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
+    if (!product) {
+      throw new HttpError(404, "Product not found");
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Product updated successfully",
+      data: {
+        product: {
+          id: product._id.toString(),
+          sellerId: product.sellerId.toString(),
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          unit: product.unit,
+          price: product.price,
+          stockQuantity: product.stockQuantity,
+          status: product.status,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
         },
       },
     });
