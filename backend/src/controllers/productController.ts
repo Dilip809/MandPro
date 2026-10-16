@@ -61,7 +61,7 @@ export const createProduct: RequestHandler = asyncHandler(
     }
 );
 
-
+// Public: list active products
 export const getProducts: RequestHandler = asyncHandler(
     async (req, res) => {
         const pageParam =
@@ -161,4 +161,75 @@ export const getProducts: RequestHandler = asyncHandler(
             },
         });
     }
+);
+
+
+// Private: list products of the authenticated seller
+export const getMyProducts: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const authUser = req.authUser;
+
+    if (!authUser) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    const pageParam =
+      typeof req.query.page === "string" ? req.query.page : undefined;
+
+    const limitParam =
+      typeof req.query.limit === "string" ? req.query.limit : undefined;
+
+    const page = pageParam === undefined ? 1 : Number(pageParam);
+    const limit = limitParam === undefined ? 12 : Number(limitParam);
+
+    if (
+      !Number.isInteger(page) ||
+      page < 1 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 50
+    ) {
+      throw new HttpError(
+        400,
+        "Page must be a positive integer and limit must be between 1 and 50"
+      );
+    }
+
+    const sellerId = new Types.ObjectId(authUser.id);
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      Product.find({ sellerId })
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Product.countDocuments({ sellerId }),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        products: products.map((product) => ({
+          id: product._id.toString(),
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          unit: product.unit,
+          price: product.price,
+          stockQuantity: product.stockQuantity,
+          status: product.status,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    });
+  }
 );
