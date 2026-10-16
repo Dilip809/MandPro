@@ -8,6 +8,7 @@ import { env } from "./config/env.js";
 import notFound from "./middlewares/notFound.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import authRoutes from "./routes/authRoutes.js";
+import productRoutes from "./routes/productRoutes.js";
 import { sessionMiddleware } from "./config/session.js";
 const app = express();
 
@@ -42,6 +43,7 @@ app.get("/api/health", (_req, res) => {
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/products", productRoutes);
 
 // Unknown routes must reach the 404 middleware.
 app.use(notFound);
