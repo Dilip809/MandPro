@@ -18,7 +18,7 @@ export const requireAuth = asyncHandler(
       });
     }
 
-    const user = await User.findById(userId).select("status");
+    const user = await User.findById(userId).select("role status");
 
     if (!user) {
       return res.status(401).json({
@@ -33,6 +33,12 @@ export const requireAuth = asyncHandler(
         message: "Your account is not active",
       });
     }
+
+    // Attach verified user information to this request.
+    req.authUser = {
+      id: user._id.toString(),
+      role: user.role,
+    };
 
     next();
   }
