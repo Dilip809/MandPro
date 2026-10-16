@@ -49,3 +49,17 @@ export const updateProductSchema = createProductSchema
   );
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
+
+
+// Update product status schema
+import { PRODUCT_STATUSES } from "../models/Product.js";
+
+export const updateProductStatusSchema = z
+  .object({
+    status: z.enum(["ACTIVE", "INACTIVE", "ARCHIVED"]),
+  })
+  .strict();
+
+export type UpdateProductStatusInput = z.infer<
+  typeof updateProductStatusSchema
+>;

@@ -3,7 +3,7 @@ import type { RequestHandler } from "express";
 import asyncHandler from "../utils/asyncHandler.js";
 import HttpError from "../utils/HttpError.js";
 import Product from "../models/Product.js";
-import type { CreateProductInput, UpdateProductInput } from "../validators/productValidator.js";
+import type { CreateProductInput, UpdateProductInput, UpdateProductStatusInput } from "../validators/productValidator.js";
 import {
     PRODUCT_UNITS,
     type ProductUnit,
@@ -288,6 +288,115 @@ export const updateProduct: RequestHandler = asyncHandler(
           stockQuantity: product.stockQuantity,
           status: product.status,
           createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        },
+      },
+    });
+  }
+);
+
+
+// Private: update status of the authenticated seller's product
+export const updateProductStatus: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const authUser = req.authUser;
+
+    if (!authUser) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    const productId = req.params.id;
+
+    if (
+      typeof productId !== "string" ||
+      !Types.ObjectId.isValid(productId)
+    ) {
+      throw new HttpError(400, "Invalid product ID");
+    }
+
+    const { status } = req.body as UpdateProductStatusInput;
+
+    const product = await Product.findOne({
+      _id: new Types.ObjectId(productId),
+      sellerId: new Types.ObjectId(authUser.id),
+    });
+
+    if (!product) {
+      throw new HttpError(404, "Product not found");
+    }
+
+    if (product.status === "ARCHIVED") {
+      throw new HttpError(
+        400,
+        "Restore the archived product before changing its status"
+      );
+    }
+
+    product.status = status;
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Product status updated successfully",
+      data: {
+        product: {
+          id: product._id.toString(),
+          sellerId: product.sellerId.toString(),
+          name: product.name,
+          status: product.status,
+          updatedAt: product.updatedAt,
+        },
+      },
+    });
+  }
+);
+
+// Restore an archived product to DRAFT
+export const restoreProduct: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const authUser = req.authUser;
+
+    if (!authUser) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    const productId = req.params.id;
+
+    if (
+      typeof productId !== "string" ||
+      !Types.ObjectId.isValid(productId)
+    ) {
+      throw new HttpError(400, "Invalid product ID");
+    }
+
+    const product = await Product.findOne({
+      _id: new Types.ObjectId(productId),
+      sellerId: new Types.ObjectId(authUser.id),
+    });
+
+    if (!product) {
+      throw new HttpError(404, "Product not found");
+    }
+
+    if (product.status !== "ARCHIVED") {
+      throw new HttpError(
+        400,
+        "Only archived products can be restored"
+      );
+    }
+
+    product.status = "DRAFT";
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Product restored to draft successfully",
+      data: {
+        product: {
+          id: product._id.toString(),
+          sellerId: product.sellerId.toString(),
+          name: product.name,
+          status: product.status,
           updatedAt: product.updatedAt,
         },
       },

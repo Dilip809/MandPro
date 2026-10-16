@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { createProduct, getMyProducts, getProducts, updateProduct } from "../controllers/productController.js";
+import { createProduct, getMyProducts, getProducts, restoreProduct, updateProduct, updateProductStatus } from "../controllers/productController.js";
 import { authorizeRoles } from "../middlewares/authorizeRoles.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
-import { createProductSchema, updateProductSchema } from "../validators/productValidator.js";
+import { createProductSchema, updateProductSchema, updateProductStatusSchema } from "../validators/productValidator.js";
 
 const router = Router();
 
@@ -21,6 +21,21 @@ router.patch(
   authorizeRoles("SELLER"),
   validateRequest(updateProductSchema),
   updateProduct
+);
+
+router.patch(
+  "/:id/status",
+  requireAuth,
+  authorizeRoles("SELLER"),
+  validateRequest(updateProductStatusSchema),
+  updateProductStatus
+);
+
+router.patch(
+  "/:id/restore",
+  requireAuth,
+  authorizeRoles("SELLER"),
+  restoreProduct
 );
 
 // Public: list active products

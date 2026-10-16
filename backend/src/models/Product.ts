@@ -13,6 +13,7 @@ export type ProductUnit = (typeof PRODUCT_UNITS)[number];
 export const PRODUCT_STATUSES = [
   "DRAFT",
   "ACTIVE",
+  "INACTIVE",
   "ARCHIVED",
 ] as const;
 
