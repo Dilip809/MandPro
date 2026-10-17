@@ -6,6 +6,7 @@ import SellerApplication, {
   SELLER_APPLICATION_STATUSES,
 } from "../models/SellerApplication.js";
 import User from "../models/User.js";
+import { RejectSellerApplicationInput } from "../validators/adminSellerApplicationValidator.js";
 
 export const getSellerApplications: RequestHandler = asyncHandler(
   async (req, res) => {
@@ -192,4 +193,93 @@ export const approveSellerApplication: RequestHandler = asyncHandler(
       },
     });
   }
+);
+
+
+export const rejectSellerApplication: RequestHandler = asyncHandler(
+  async (req, res) => {
+    const authUser = req.authUser;
+
+    if (!authUser) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    const applicationId = req.params.id;
+
+    if (
+      typeof applicationId !== "string" ||
+      !Types.ObjectId.isValid(applicationId)
+    ) {
+      throw new HttpError(400, "Invalid seller application ID");
+    }
+
+    const { rejectionReason } =
+      req.body as RejectSellerApplicationInput;
+
+    const session = await mongoose.startSession();
+
+    try {
+      await session.withTransaction(async () => {
+        const application = await SellerApplication.findOneAndUpdate(
+          {
+            _id: applicationId,
+            status: "PENDING",
+          },
+          {
+            $set: {
+              status: "REJECTED",
+              rejectionReason,
+              reviewedBy: new Types.ObjectId(authUser.id),
+              reviewedAt: new Date(),
+            },
+          },
+          {
+            new: true,
+            runValidators: true,
+            session,
+          },
+        );
+
+        if (!application) {
+          const existingApplication = await SellerApplication.findById(
+            applicationId,
+          ).session(session);
+
+          if (!existingApplication) {
+            throw new HttpError(404, "Seller application not found");
+          }
+
+          throw new HttpError(
+            409,
+            "Only pending seller applications can be rejected",
+          );
+        }
+
+        const user = await User.findById(application.userId).session(session);
+
+        if (!user) {
+          throw new HttpError(
+            409,
+            "The applicant's user account was not found",
+          );
+        }
+
+        user.sellerApprovalStatus = "REJECTED";
+        await user.save({ session });
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Seller application rejected successfully",
+      data: {
+        applicationId,
+        status: "REJECTED",
+        sellerApprovalStatus: "REJECTED",
+        rejectionReason,
+      },
+    });
+  },
 );
