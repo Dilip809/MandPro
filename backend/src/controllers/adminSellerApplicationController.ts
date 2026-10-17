@@ -1,10 +1,11 @@
-
+import mongoose, { Types } from "mongoose";
 import type { RequestHandler } from "express";
 import asyncHandler from "../utils/asyncHandler.js";
 import HttpError from "../utils/HttpError.js";
 import SellerApplication, {
   SELLER_APPLICATION_STATUSES,
 } from "../models/SellerApplication.js";
+import User from "../models/User.js";
 
 export const getSellerApplications: RequestHandler = asyncHandler(
   async (req, res) => {
@@ -88,6 +89,106 @@ export const getSellerApplications: RequestHandler = asyncHandler(
           total,
           totalPages: Math.ceil(total / limit),
         },
+      },
+    });
+  }
+);
+
+
+
+export const approveSellerApplication: RequestHandler = asyncHandler(
+  async (req, res) => {
+    if (!req.authUser) {
+      throw new HttpError(401, "Authentication required");
+    }
+
+    const applicationId = req.params.id;
+
+    if (
+      typeof applicationId !== "string" ||
+      !Types.ObjectId.isValid(applicationId)
+    ) {
+      throw new HttpError(400, "Invalid seller application ID");
+    }
+
+    const session = await mongoose.startSession();
+    let approvedApplicationId: string | undefined;
+
+    try {
+      await session.withTransaction(async () => {
+        const application = await SellerApplication.findOneAndUpdate(
+          {
+            _id: applicationId,
+            status: "PENDING",
+          },
+          {
+            $set: {
+              status: "APPROVED",
+              reviewedBy: new Types.ObjectId(req.authUser!.id),
+              reviewedAt: new Date(),
+            },
+            $unset: {
+              rejectionReason: 1,
+            },
+          },
+          {
+            new: true,
+            runValidators: true,
+            session,
+          }
+        );
+
+        if (!application) {
+          const existingApplication = await SellerApplication.findById(
+            applicationId
+          ).session(session);
+
+          if (!existingApplication) {
+            throw new HttpError(404, "Seller application not found");
+          }
+
+          throw new HttpError(
+            409,
+            "Only pending seller applications can be approved"
+          );
+        }
+
+        const user = await User.findById(application.userId).session(session);
+
+        if (!user) {
+          throw new HttpError(
+            409,
+            "The applicant's user account was not found"
+          );
+        }
+
+        if (user.status !== "ACTIVE") {
+          throw new HttpError(
+            409,
+            "Cannot approve a seller with an inactive account"
+          );
+        }
+
+        user.sellerApprovalStatus = "APPROVED";
+        await user.save({ session });
+
+        approvedApplicationId = application._id.toString();
+      });
+    } finally {
+      await session.endSession();
+    }
+
+    if (!approvedApplicationId) {
+      throw new HttpError(500, "Seller approval could not be completed");
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Seller application approved successfully",
+      data: {
+        applicationId: approvedApplicationId,
+        status: "APPROVED",
+        sellerApprovalStatus: "APPROVED",
       },
     });
   }
