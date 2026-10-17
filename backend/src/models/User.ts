@@ -20,6 +20,16 @@ export const USER_STATUSES = [
 
 export type UserStatus = (typeof USER_STATUSES)[number];
 
+export const SELLER_APPROVAL_STATUSES = [
+  "NOT_APPLIED",
+  "PENDING",
+  "APPROVED",
+  "REJECTED",
+] as const;
+
+export type SellerApprovalStatus =
+  (typeof SELLER_APPROVAL_STATUSES)[number];
+
 export const CUSTOMER_TYPES = [
   "INDIVIDUAL",
   "HOTEL_RESTAURANT",
@@ -42,6 +52,7 @@ export interface IUser {
   status: UserStatus;
   emailVerified: boolean;
   customerType: CustomerType;
+  sellerApprovalStatus: SellerApprovalStatus;
   businessName?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -111,6 +122,13 @@ const userSchema = new Schema<IUser>(
     emailVerified: {
       type: Boolean,
       default: false,
+    },
+
+    sellerApprovalStatus: {
+      type: String,
+      enum: SELLER_APPROVAL_STATUSES,
+      default: "NOT_APPLIED",
+      required: true,
     },
   },
   {

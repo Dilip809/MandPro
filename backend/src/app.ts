@@ -3,13 +3,14 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import mongoose from "mongoose";
-
 import { env } from "./config/env.js";
 import notFound from "./middlewares/notFound.js";
 import errorHandler from "./middlewares/errorHandler.js";
 import authRoutes from "./routes/authRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import { sessionMiddleware } from "./config/session.js";
+import sellerApplicationRoutes from "./routes/sellerApplicationRoutes.js";
+
 const app = express();
 
 app.disable("x-powered-by");
@@ -44,6 +45,7 @@ app.get("/api/health", (_req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/seller-applications", sellerApplicationRoutes);
 
 // Unknown routes must reach the 404 middleware.
 app.use(notFound);
