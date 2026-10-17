@@ -10,6 +10,7 @@ import authRoutes from "./routes/authRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import { sessionMiddleware } from "./config/session.js";
 import sellerApplicationRoutes from "./routes/sellerApplicationRoutes.js";
+import adminSellerApplicationRoutes from "./routes/adminSellerApplicationRoutes.js";
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/seller-applications", sellerApplicationRoutes);
+app.use("/api/admin", adminSellerApplicationRoutes);
 
 // Unknown routes must reach the 404 middleware.
 app.use(notFound);
