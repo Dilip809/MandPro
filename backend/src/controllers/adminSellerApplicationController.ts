@@ -56,9 +56,9 @@ export const getSellerApplications: RequestHandler = asyncHandler(
       status === undefined
         ? {}
         : {
-            status:
-              status as (typeof SELLER_APPLICATION_STATUSES)[number],
-          };
+          status:
+            status as (typeof SELLER_APPLICATION_STATUSES)[number],
+        };
 
     const skip = (page - 1) * limit;
 
@@ -170,6 +170,13 @@ export const approveSellerApplication: RequestHandler = asyncHandler(
           );
         }
 
+        if (user.sellerApprovalStatus !== "PENDING") {
+          throw new HttpError(
+            409,
+            "User seller approval status does not match the pending application"
+          );
+        }
+
         user.sellerApprovalStatus = "APPROVED";
         await user.save({ session });
 
@@ -260,7 +267,14 @@ export const rejectSellerApplication: RequestHandler = asyncHandler(
         if (!user) {
           throw new HttpError(
             409,
-            "The applicant's user account was not found",
+            "The applicant's user account was not found"
+          );
+        }
+
+        if (user.sellerApprovalStatus !== "PENDING") {
+          throw new HttpError(
+            409,
+            "User seller approval status does not match the pending application"
           );
         }
 
