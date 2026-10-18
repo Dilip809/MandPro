@@ -51,7 +51,7 @@ export interface IUser {
   role: UserRole;
   status: UserStatus;
   emailVerified: boolean;
-  customerType: CustomerType;
+  customerType?: CustomerType;
   sellerApprovalStatus: SellerApprovalStatus;
   businessName?: string;
   createdAt: Date;
@@ -92,7 +92,9 @@ const userSchema = new Schema<IUser>(
     customerType: {
       type: String,
       enum: CUSTOMER_TYPES,
-      required: true,
+      required: function (this: IUser) {
+        return this.role === "CUSTOMER";
+      },
     },
 
     businessName: {
@@ -101,7 +103,10 @@ const userSchema = new Schema<IUser>(
       minlength: 2,
       maxlength: 150,
       required: function (this: IUser) {
-        return this.customerType !== "INDIVIDUAL";
+        return (
+          this.role === "CUSTOMER" &&
+          this.customerType !== "INDIVIDUAL"
+        );
       },
     },
 
