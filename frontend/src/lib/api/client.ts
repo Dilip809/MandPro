@@ -1,7 +1,7 @@
 
 import axios from "axios";
 
-const api = axios.create({
+const apiClient = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL,
   withCredentials: true,
   headers: {
@@ -11,7 +11,7 @@ const api = axios.create({
   timeout: 15000,
 });
 
-api.interceptors.request.use((config) => {
+apiClient.interceptors.request.use((config) => {
   if (!config.baseURL) {
     return Promise.reject(
       new Error("NEXT_PUBLIC_API_URL is not configured."),
@@ -21,4 +21,4 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-export default api;
+export default apiClient;
