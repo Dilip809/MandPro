@@ -1,14 +1,26 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
+
+function subscribe() {
+  return () => {};
+}
+
+function getYear() {
+  return new Date().getFullYear();
+}
+
+function getServerYear() {
+  return 2026;
+}
 
 export default function CurrentYear() {
-  const [year, setYear] = useState<number | null>(null);
+  const year = useSyncExternalStore(
+    subscribe,
+    getYear,
+    getServerYear
+  );
 
-  useEffect(() => {
-    setYear(new Date().getFullYear());
-  }, []);
-
-  return <>{year ?? "2026"}</>;
+  return <>{year}</>;
 }

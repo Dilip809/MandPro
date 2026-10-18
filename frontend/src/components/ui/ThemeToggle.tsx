@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 type Theme = "light" | "dark" | "system";
 
@@ -11,61 +11,42 @@ function isTheme(value: string | null): value is Theme {
   return value === "light" || value === "dark" || value === "system";
 }
 
+function getThemeSnapshot(): Theme {
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    return isTheme(saved) ? saved : "system";
+  } catch {
+    return "system";
+  }
+}
+
+function getServerSnapshot(): Theme {
+  return "system";
+}
+
+function subscribeToThemeChanges(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  return () => window.removeEventListener("storage", onChange);
+}
+
 function applyTheme(theme: Theme) {
   const prefersDark = window.matchMedia(
     "(prefers-color-scheme: dark)",
   ).matches;
 
-  const resolvedTheme =
+  const resolved =
     theme === "system" ? (prefersDark ? "dark" : "light") : theme;
 
-  document.documentElement.dataset.theme = resolvedTheme;
-  document.documentElement.style.colorScheme = resolvedTheme;
+  document.documentElement.dataset.theme = resolved;
+  document.documentElement.style.colorScheme = resolved;
 }
 
 export default function ThemeToggle() {
-  const [theme, setTheme] = useState<Theme>("system");
-
-  useEffect(() => {
-    let storedTheme: string | null = null;
-
-    try {
-      storedTheme = window.localStorage.getItem(STORAGE_KEY);
-    } catch {
-      // Continue using the system preference if storage is unavailable.
-    }
-
-    const initialTheme = isTheme(storedTheme) ? storedTheme : "system";
-
-    if (initialTheme !== theme) {
-      setTheme(initialTheme);
-      return;
-    }
-
-    applyTheme(theme);
-
-    try {
-      window.localStorage.setItem(STORAGE_KEY, theme);
-    } catch {
-      // The current theme still works if storage is unavailable.
-    }
-
-    const mediaQuery = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    );
-
-    const handleSystemThemeChange = () => {
-      if (theme === "system") {
-        applyTheme("system");
-      }
-    };
-
-    mediaQuery.addEventListener("change", handleSystemThemeChange);
-
-    return () => {
-      mediaQuery.removeEventListener("change", handleSystemThemeChange);
-    };
-  }, [theme]);
+  const theme = useSyncExternalStore(
+    subscribeToThemeChanges,
+    getThemeSnapshot,
+    getServerSnapshot,
+  );
 
   function handleToggle() {
     const nextTheme: Record<Theme, Theme> = {
@@ -74,7 +55,21 @@ export default function ThemeToggle() {
       dark: "system",
     };
 
-    setTheme(nextTheme[theme]);
+    const next = nextTheme[theme];
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, next);
+    } catch {
+      // Continue applying the theme for this page view.
+    }
+
+    applyTheme(next);
+
+    // Notify other tabs that the preference changed.
+    window.dispatchEvent(new StorageEvent("storage", {
+      key: STORAGE_KEY,
+      newValue: next,
+    }));
   }
 
   const labels: Record<Theme, string> = {
