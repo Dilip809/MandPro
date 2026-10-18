@@ -1,18 +1,19 @@
 
 import CurrentYear from "@/components/ui/CurrentYear";
 import ThemeToggle from "@/components/ui/ThemeToggle";
+import Link from "next/link";
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border bg-surface">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-4 sm:px-8">
-          <a
+          <Link
             href="/"
             className="text-2xl font-bold tracking-tight text-primary"
           >
             Mandipro
-          </a>
+          </Link>
 
           <nav
             aria-label="Main navigation"
