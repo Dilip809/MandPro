@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import StoreProvider from "@/components/providers/StoreProvider";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,7 +69,17 @@ export default function RootLayout({
       </head>
 
       <body className="flex min-h-full flex-col">
-        {children}
+        <Suspense
+          fallback={
+            <div
+              className="min-h-screen bg-background"
+              aria-busy="true"
+              aria-label="Loading application"
+            />
+          }
+        >
+          <StoreProvider>{children}</StoreProvider>
+        </Suspense>
       </body>
     </html>
   );
