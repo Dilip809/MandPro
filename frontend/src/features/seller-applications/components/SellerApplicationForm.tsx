@@ -12,8 +12,10 @@ const BUSINESS_TYPES: { value: CustomerType; label: string }[] = [
   { value: "HOTEL_RESTAURANT", label: "Hotel / Restaurant" },
   { value: "CATERER", label: "Caterer" },
   { value: "FOOD_STALL", label: "Food stall" },
-  { value: "RETAILER", label: "Retailer" },
-  { value: "OTHER", label: "Other" },
+  { value: "RETAIL_SHOP", label: "Retailer" },
+  { value: "STREET_VENDOR", label: "Street vendor" },
+  { value: "WHOLESALER", label: "Wholesaler" },
+  { value: "OTHER_BUSINESS", label: "Other" },
 ];
 
 function getErrorMessage(error: unknown): string {
@@ -165,7 +167,7 @@ export default function SellerApplicationForm() {
         {isLoading ? "Submitting application..." : "Submit application"}
       </button>
 
-      <p className="text-sm text-[var(--muted-foreground)]">
+      <p className="text-sm text-(--muted-foreground)">
         Your application will be reviewed by the Mandipro administration team.
       </p>
     </form>

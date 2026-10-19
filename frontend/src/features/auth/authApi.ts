@@ -17,7 +17,7 @@ export interface RegisterRequest {
 }
 
 export interface LoginRequest {
-  email: string;
+  identifier: string;
   password: string;
 }
 
@@ -53,7 +53,7 @@ export const authApi = createApi({
         method: "POST",
         data: body,
       }),
-      invalidatesTags: ["CurrentUser"],
+      invalidatesTags: (result) => (result ? ["CurrentUser"] : []),
     }),
 
     logout: builder.mutation<

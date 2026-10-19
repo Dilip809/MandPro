@@ -19,10 +19,12 @@ export type UserStatus =
 export type CustomerType =
   | "INDIVIDUAL"
   | "HOTEL_RESTAURANT"
-  | "CATERER"
   | "FOOD_STALL"
-  | "RETAILER"
-  | "OTHER";
+  | "CATERER"
+  | "STREET_VENDOR"
+  | "RETAIL_SHOP"
+  | "WHOLESALER"
+  | "OTHER_BUSINESS";
 
 export interface AuthUser {
   _id: string;
