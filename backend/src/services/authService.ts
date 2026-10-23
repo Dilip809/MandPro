@@ -74,6 +74,7 @@ export const registerUser = async (input: RegisterInput) => {
       status: user.status,
       emailVerified: user.emailVerified,
       customerType: user.customerType,
+      sellerApprovalStatus: user.sellerApprovalStatus,
       ...(user.businessName
         ? { businessName: user.businessName }
         : {}),

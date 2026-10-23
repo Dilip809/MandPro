@@ -1,11 +1,10 @@
-
 "use client";
 
 import SellerApplicationForm from "@/features/seller-applications/components/SellerApplicationForm";
 import SellerApplicationStatus from "@/features/seller-applications/components/SellerApplicationStatus";
 import { useGetMySellerApplicationQuery } from "@/features/seller-applications/sellerApplicationApi";
 
-export default function SellerApplicationPage() {
+export default function SellerApplicationClient() {
   const {
     data,
     isLoading,
@@ -40,7 +39,7 @@ export default function SellerApplicationPage() {
         <button
           type="button"
           onClick={() => void refetch()}
-          className="rounded-lg border border-[var(--border)] px-4 py-2"
+          className="rounded-lg border border-border px-4 py-2"
         >
           Try again
         </button>
@@ -53,8 +52,10 @@ export default function SellerApplicationPage() {
   return (
     <main className="mx-auto max-w-2xl space-y-6 px-4 py-10">
       <header className="space-y-2">
-        <h1 className="text-3xl font-bold">Become a Mandipro seller</h1>
-        <p className="text-[var(--muted-foreground)]">
+        <h1 className="text-3xl font-bold">
+          Become a Mandipro seller
+        </h1>
+        <p className="text-(--muted-foreground)">
           Tell us about your business to apply for seller access.
         </p>
       </header>
@@ -64,9 +65,11 @@ export default function SellerApplicationPage() {
       )}
 
       {(!application || application.status === "REJECTED") && (
-        <section className="space-y-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-5">
+        <section className="space-y-4 rounded-xl border border-border bg-surface p-5">
           <h2 className="text-xl font-semibold">
-            {application ? "Resubmit your application" : "Business details"}
+            {application
+              ? "Resubmit your application"
+              : "Business details"}
           </h2>
           <SellerApplicationForm />
         </section>

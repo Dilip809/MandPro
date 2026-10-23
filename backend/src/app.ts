@@ -43,6 +43,10 @@ app.get("/api/health", (_req, res) => {
   });
 });
 
+app.use("/api/auth/me", (_req, res, next) => {
+  res.setHeader("Cache-Control", "no-store");
+  next();
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);

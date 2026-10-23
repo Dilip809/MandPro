@@ -16,6 +16,12 @@ export type UserStatus =
   | "REJECTED"
   | "INACTIVE";
 
+export type SellerApprovalStatus =
+  | "NOT_APPLIED"
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED";
+
 export type CustomerType =
   | "INDIVIDUAL"
   | "HOTEL_RESTAURANT"
@@ -35,6 +41,7 @@ export interface AuthUser {
   businessName?: string;
   role: UserRole;
   status: UserStatus;
+  sellerApprovalStatus?: SellerApprovalStatus;
   emailVerified: boolean;
   createdAt: string;
   updatedAt: string;

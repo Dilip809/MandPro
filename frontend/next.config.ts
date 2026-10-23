@@ -3,8 +3,8 @@ import path from "node:path";
 
 const nextConfig: NextConfig = {
   /* config options here */
-  cacheComponents: true,
-  partialPrefetching: true,
+  // cacheComponents: true,
+  // partialPrefetching: true,
   reactCompiler: true,
   turbopack: {
     root: path.resolve(process.cwd()),

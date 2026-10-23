@@ -110,7 +110,7 @@ export const getCurrentUser = asyncHandler(
 
     const user = await User.findById(userId)
       .select(
-        "name email phone role status emailVerified customerType businessName createdAt updatedAt"
+        "name email phone role status emailVerified customerType sellerApprovalStatus businessName createdAt updatedAt"
       )
       .lean();
 

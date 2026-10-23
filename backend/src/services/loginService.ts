@@ -53,9 +53,8 @@ export const loginUser = async (input: LoginInput) => {
     status: user.status,
     emailVerified: user.emailVerified,
     customerType: user.customerType,
-    ...(user.businessName
-      ? { businessName: user.businessName }
-      : {}),
+    sellerApprovalStatus: user.sellerApprovalStatus,
+    ...(user.businessName ? { businessName: user.businessName } : {}),
     createdAt: user.createdAt,
   };
 };
