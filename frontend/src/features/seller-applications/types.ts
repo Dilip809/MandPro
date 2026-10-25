@@ -43,3 +43,23 @@ export interface MySellerApplicationResponse {
     application: SellerApplication | null;
   };
 }
+
+export interface AdminSellerApplicationsResponse {
+  success: boolean;
+  message?: string;
+  data: {
+    applications: SellerApplication[];
+  };
+}
+
+export interface RejectSellerApplicationInput {
+  rejectionReason: string;
+}
+
+export interface AdminSellerApplicationActionResponse {
+  success: boolean;
+  message?: string;
+  data?: {
+    application?: SellerApplication;
+  };
+}
