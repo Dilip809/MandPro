@@ -28,7 +28,7 @@ type AuthMutationResponse = ApiResponse<{
 export const authApi = createApi({
   reducerPath: "authApi",
   baseQuery: axiosBaseQuery(),
-  tagTypes: ["CurrentUser", "SellerApplication"],
+  tagTypes: ["CurrentUser", "SellerApplication", "Product"],
 
   endpoints: (builder) => ({
     getCurrentUser: builder.query<CurrentUserResponse, void>({

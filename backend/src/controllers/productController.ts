@@ -3,6 +3,7 @@ import type { RequestHandler } from "express";
 import asyncHandler from "../utils/asyncHandler.js";
 import HttpError from "../utils/HttpError.js";
 import Product from "../models/Product.js";
+import User from "../models/User.js";
 import type { CreateProductInput, UpdateProductInput, UpdateProductStatusInput } from "../validators/productValidator.js";
 import {
     PRODUCT_UNITS,
@@ -63,104 +64,122 @@ export const createProduct: RequestHandler = asyncHandler(
 
 // Public: list active products
 export const getProducts: RequestHandler = asyncHandler(
-    async (req, res) => {
-        const pageParam =
-            typeof req.query.page === "string" ? req.query.page : undefined;
+  async (req, res) => {
+    const pageParam =
+      typeof req.query.page === "string"
+        ? req.query.page
+        : undefined;
 
-        const limitParam =
-            typeof req.query.limit === "string" ? req.query.limit : undefined;
+    const limitParam =
+      typeof req.query.limit === "string"
+        ? req.query.limit
+        : undefined;
 
-        const categoryParam =
-            typeof req.query.category === "string"
-                ? req.query.category.trim()
-                : undefined;
+    const categoryParam =
+      typeof req.query.category === "string"
+        ? req.query.category.trim()
+        : undefined;
 
-        const unitParam =
-            typeof req.query.unit === "string" ? req.query.unit : undefined;
+    const unitParam =
+      typeof req.query.unit === "string"
+        ? req.query.unit
+        : undefined;
 
-        const page = pageParam === undefined ? 1 : Number(pageParam);
-        const limit = limitParam === undefined ? 12 : Number(limitParam);
+    const page = pageParam === undefined ? 1 : Number(pageParam);
+    const limit = limitParam === undefined ? 12 : Number(limitParam);
 
-        if (
-            !Number.isInteger(page) ||
-            page < 1 ||
-            !Number.isInteger(limit) ||
-            limit < 1 ||
-            limit > 50
-        ) {
-            throw new HttpError(
-                400,
-                "Page must be a positive integer and limit must be between 1 and 50"
-            );
-        }
-
-        if (
-            categoryParam !== undefined &&
-            (categoryParam.length < 2 || categoryParam.length > 100)
-        ) {
-            throw new HttpError(
-                400,
-                "Category must contain between 2 and 100 characters"
-            );
-        }
-
-        if (
-            unitParam !== undefined &&
-            !(PRODUCT_UNITS as readonly string[]).includes(unitParam)
-        ) {
-            throw new HttpError(400, "Invalid product unit");
-        }
-
-        const filter: {
-            status: "ACTIVE";
-            category?: string;
-            unit?: ProductUnit;
-        } = {
-            status: "ACTIVE",
-        };
-
-        if (categoryParam) {
-            filter.category = categoryParam;
-        }
-
-        if (unitParam) {
-            filter.unit = unitParam as ProductUnit;
-        }
-
-        const skip = (page - 1) * limit;
-
-        const [products, total] = await Promise.all([
-            Product.find(filter)
-                .sort({ createdAt: -1, _id: -1 })
-                .skip(skip)
-                .limit(limit)
-                .lean(),
-
-            Product.countDocuments(filter),
-        ]);
-
-        res.status(200).json({
-            success: true,
-            data: {
-                products: products.map((product) => ({
-                    id: product._id.toString(),
-                    name: product.name,
-                    description: product.description,
-                    category: product.category,
-                    unit: product.unit,
-                    price: product.price,
-                    stockQuantity: product.stockQuantity,
-                    createdAt: product.createdAt,
-                })),
-                pagination: {
-                    page,
-                    limit,
-                    total,
-                    totalPages: Math.ceil(total / limit),
-                },
-            },
-        });
+    if (
+      !Number.isInteger(page) ||
+      page < 1 ||
+      !Number.isInteger(limit) ||
+      limit < 1 ||
+      limit > 50
+    ) {
+      throw new HttpError(
+        400,
+        "Page must be a positive integer and limit must be between 1 and 50"
+      );
     }
+
+    if (
+      categoryParam !== undefined &&
+      (categoryParam.length < 2 || categoryParam.length > 100)
+    ) {
+      throw new HttpError(
+        400,
+        "Category must contain between 2 and 100 characters"
+      );
+    }
+
+    if (
+      unitParam !== undefined &&
+      !(PRODUCT_UNITS as readonly string[]).includes(unitParam)
+    ) {
+      throw new HttpError(400, "Invalid product unit");
+    }
+
+    // Only active accounts with approved seller applications can sell.
+    const eligibleSellers = await User.find({
+      status: "ACTIVE",
+      sellerApprovalStatus: "APPROVED",
+    })
+      .select("_id")
+      .lean();
+
+    const filter: {
+      status: "ACTIVE";
+      sellerId: { $in: Types.ObjectId[] };
+      category?: string;
+      unit?: ProductUnit;
+    } = {
+      status: "ACTIVE",
+      sellerId: {
+        $in: eligibleSellers.map((seller) => seller._id),
+      },
+    };
+
+    if (categoryParam) {
+      filter.category = categoryParam;
+    }
+
+    if (unitParam) {
+      filter.unit = unitParam as ProductUnit;
+    }
+
+    const skip = (page - 1) * limit;
+
+    const [products, total] = await Promise.all([
+      Product.find(filter)
+        .sort({ createdAt: -1, _id: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+
+      Product.countDocuments(filter),
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        products: products.map((product) => ({
+          id: product._id.toString(),
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          unit: product.unit,
+          price: product.price,
+          stockQuantity: product.stockQuantity,
+          createdAt: product.createdAt,
+        })),
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      },
+    });
+  }
 );
 
 
