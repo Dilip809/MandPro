@@ -24,11 +24,23 @@ export const axiosBaseQuery =
   > =>
   async ({ url, method = "GET", data, params }) => {
     try {
+      const isFormData =
+        typeof FormData !== "undefined" &&
+        data instanceof FormData;
+
       const response = await apiClient({
         url,
         method,
         data,
         params,
+
+        ...(isFormData
+          ? {
+              headers: {
+                "Content-Type": undefined,
+              },
+            }
+          : {}),
       });
 
       return { data: response.data };

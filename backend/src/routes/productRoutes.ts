@@ -1,10 +1,10 @@
 import { Router } from "express";
 import { createProduct, getMyProducts, getProducts, restoreProduct, updateProduct, updateProductStatus } from "../controllers/productController.js";
-import { authorizeRoles } from "../middlewares/authorizeRoles.js";
 import { requireAuth } from "../middlewares/requireAuth.js";
 import { validateRequest } from "../middlewares/validateRequest.js";
 import { createProductSchema, updateProductSchema, updateProductStatusSchema } from "../validators/productValidator.js";
 import requireApprovedSeller from "../middlewares/requireApprovedSeller.js";
+import uploadProductImage from "../middlewares/uploadProductImage.js";
 
 const router = Router();
 
@@ -21,6 +21,7 @@ router.patch(
   "/:id",
   requireAuth,
   requireApprovedSeller,
+  uploadProductImage,
   validateRequest(updateProductSchema),
   updateProduct
 );
@@ -50,6 +51,7 @@ router.post(
   "/",
   requireAuth,
   requireApprovedSeller,
+  uploadProductImage,
   validateRequest(createProductSchema),
   createProduct
 );

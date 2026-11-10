@@ -27,6 +27,8 @@ export interface IProduct {
   unit: ProductUnit;
   price: number;
   stockQuantity: number;
+  image?: string;
+  imagePublicId: string;
   status: ProductStatus;
   createdAt: Date;
   updatedAt: Date;
@@ -81,6 +83,17 @@ const productSchema = new Schema<IProduct>(
       default: 0,
     },
 
+    image: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+
+    imagePublicId: {
+      type: String,
+      default: "",
+    },
+
     status: {
       type: String,
       enum: PRODUCT_STATUSES,
@@ -95,6 +108,12 @@ const productSchema = new Schema<IProduct>(
 );
 
 productSchema.index({ sellerId: 1, name: 1 });
+
+productSchema.index({
+  status: 1,
+  sellerId: 1,
+  createdAt: -1,
+});
 
 const Product: Model<IProduct> =
   (models.Product as Model<IProduct>) ||

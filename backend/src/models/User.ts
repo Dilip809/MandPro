@@ -156,6 +156,11 @@ userSchema.index(
   }
 );
 
+userSchema.index({
+  status: 1,
+  sellerApprovalStatus: 1,
+});
+
 // const User =
 //   models.User || model<IUser>("User", userSchema);
 

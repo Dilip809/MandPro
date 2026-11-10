@@ -21,6 +21,7 @@ export interface Product {
   unit: ProductUnit;
   price: number;
   stockQuantity: number;
+  image?: string;
   status?: ProductStatus;
   createdAt: string;
   updatedAt?: string;

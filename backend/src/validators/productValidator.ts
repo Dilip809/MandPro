@@ -1,3 +1,4 @@
+
 import { z } from "zod";
 import { PRODUCT_UNITS } from "../models/Product.js";
 
@@ -24,14 +25,24 @@ export const createProductSchema = z
     unit: z.enum(PRODUCT_UNITS),
 
     price: z
-      .number()
-      .finite()
-      .positive("Price must be greater than zero"),
+      .string()
+      .regex(/^\d+(\.\d+)?$/, "Price must be a valid number")
+      .transform(Number)
+      .pipe(
+        z.number()
+          .finite()
+          .positive("Price must be greater than zero")
+      ),
 
     stockQuantity: z
-      .number()
-      .finite()
-      .min(0, "Stock quantity cannot be negative"),
+      .string()
+      .regex(/^\d+(\.\d+)?$/, "Stock quantity must be a valid number")
+      .transform(Number)
+      .pipe(
+        z.number()
+          .finite()
+          .min(0, "Stock quantity cannot be negative")
+      ),
   })
   .strict();
 
@@ -39,7 +50,6 @@ export type CreateProductInput = z.infer<
   typeof createProductSchema
 >;
 
-// Update product schema allows partial updates, but at least one field must be provided
 export const updateProductSchema = createProductSchema
   .partial()
   .strict()
@@ -49,10 +59,6 @@ export const updateProductSchema = createProductSchema
   );
 
 export type UpdateProductInput = z.infer<typeof updateProductSchema>;
-
-
-// Update product status schema
-import { PRODUCT_STATUSES } from "../models/Product.js";
 
 export const updateProductStatusSchema = z
   .object({

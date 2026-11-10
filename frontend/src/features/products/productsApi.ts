@@ -25,6 +25,38 @@ interface ProductStatusResponse {
   };
 }
 
+// Data sent when creating a product with an image.
+export interface CreateProductFormData {
+  data: ProductInput;
+  image?: File | null;
+}
+
+// Data sent when updating a product with an optional new image.
+export interface UpdateProductFormData {
+  id: string;
+  data: UpdateProductInput;
+  image?: File | null;
+}
+
+function buildProductFormData(
+  data: ProductInput | UpdateProductInput,
+  image?: File | null,
+): FormData {
+  const formData = new FormData();
+
+  Object.entries(data).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      formData.append(key, String(value));
+    }
+  });
+
+  if (image) {
+    formData.append("image", image);
+  }
+
+  return formData;
+}
+
 export const productsApi = authApi.injectEndpoints({
   endpoints: (builder) => ({
     // Public marketplace listing.
@@ -59,11 +91,15 @@ export const productsApi = authApi.injectEndpoints({
       ],
     }),
 
-    createProduct: builder.mutation<ProductMutationResponse, ProductInput>({
-      query: (data) => ({
+    // Create product with optional image.
+    createProduct: builder.mutation<
+      ProductMutationResponse,
+      CreateProductFormData
+    >({
+      query: ({ data, image }) => ({
         url: "/products",
         method: "POST",
-        data,
+        data: buildProductFormData(data, image),
       }),
       invalidatesTags: [
         { type: "Product", id: "SELLER_LIST" },
@@ -71,14 +107,15 @@ export const productsApi = authApi.injectEndpoints({
       ],
     }),
 
+    // Update product with optional replacement image.
     updateProduct: builder.mutation<
       ProductMutationResponse,
-      { id: string; data: UpdateProductInput }
+      UpdateProductFormData
     >({
-      query: ({ id, data }) => ({
+      query: ({ id, data, image }) => ({
         url: `/products/${id}`,
         method: "PATCH",
-        data,
+        data: buildProductFormData(data, image),
       }),
       invalidatesTags: (_result, _error, { id }) => [
         { type: "Product", id },

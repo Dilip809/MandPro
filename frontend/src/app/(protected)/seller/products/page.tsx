@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
+import Image from "next/image";
 
 import {
   useCreateProductMutation,
@@ -71,6 +72,8 @@ export default function SellerProductsPage() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState("");
 
   const {
     data,
@@ -94,8 +97,17 @@ export default function SellerProductsPage() {
   const products = data?.data.products ?? [];
   const isSaving = isCreating || isUpdating;
 
+  useEffect(() => {
+    if (!imagePreview) return;
+
+    return () => {
+      URL.revokeObjectURL(imagePreview);
+    };
+  }, [imagePreview]);
+
   function startEditing(product: Product) {
     setEditingProduct(product);
+
     setForm({
       name: product.name,
       description: product.description ?? "",
@@ -104,6 +116,12 @@ export default function SellerProductsPage() {
       price: product.price,
       stockQuantity: product.stockQuantity,
     });
+
+    setSelectedImage(null);
+
+    // Display the existing Cloudinary image.
+    setImagePreview(product.image ?? "");
+
     setFormError("");
     setNotice("");
   }
@@ -153,15 +171,23 @@ export default function SellerProductsPage() {
         await updateProduct({
           id: editingProduct.id,
           data: input,
+          image: selectedImage,
         }).unwrap();
 
         setNotice("Product updated successfully.");
       } else {
-        await createProduct(input).unwrap();
+        await createProduct({
+          data: input,
+          image: selectedImage,
+        }).unwrap();
+
         setNotice("Product created as a draft.");
       }
 
       resetForm();
+
+      setSelectedImage(null);
+      setImagePreview("");
     } catch (error: unknown) {
       setFormError(getErrorMessage(error));
     }
@@ -335,6 +361,69 @@ export default function SellerProductsPage() {
               />
             </label>
 
+            {/* PRODUCT IMAGE UPLOAD */}
+            <div className="sm:col-span-2 space-y-3">
+
+              <label className="block text-sm font-medium">
+                Product Image
+              </label>
+
+              <div className="rounded-xl border-2 border-dashed border-border p-5">
+
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+
+                    if (!file) return;
+
+                    if (file.size > 5 * 1024 * 1024) {
+                      setFormError("Image size must not exceed 5MB.");
+                      event.target.value = "";
+                      return;
+                    }
+
+                    setFormError("");
+                    setSelectedImage(file);
+
+                    const previewUrl = URL.createObjectURL(file);
+                    setImagePreview(previewUrl);
+                  }}
+                  className="block w-full text-sm"
+                />
+
+                <p className="mt-2 text-xs text-text-muted">
+                  JPG, PNG or WEBP. Maximum file size: 5MB.
+                </p>
+
+                {imagePreview && (
+                  <div className="mt-4">
+                    <Image
+                      src={imagePreview}
+                      alt="Product preview"
+                      width={160}
+                      height={160}
+                      unoptimized
+                      className="h-40 w-40 rounded-xl border border-border object-cover"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview("");
+                        setSelectedImage(null);
+                      }}
+                      className="mt-3 block text-sm font-medium text-red-600"
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            </div>
+
             <label className="block text-sm font-medium sm:col-span-2">
               Description (optional)
               <textarea
@@ -426,7 +515,7 @@ export default function SellerProductsPage() {
 
         {products.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full min-w-[850px] text-left text-sm">
+            <table className="w-full min-w-212.5 text-left text-sm">
               <thead className="bg-surface-muted">
                 <tr>
                   <th className="px-4 py-3 font-semibold">Product</th>

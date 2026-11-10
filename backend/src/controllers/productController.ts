@@ -6,60 +6,91 @@ import Product from "../models/Product.js";
 import User from "../models/User.js";
 import type { CreateProductInput, UpdateProductInput, UpdateProductStatusInput } from "../validators/productValidator.js";
 import {
-    PRODUCT_UNITS,
-    type ProductUnit,
+  PRODUCT_UNITS,
+  type ProductUnit,
 } from "../models/Product.js";
+import { v2 as cloudinary } from "cloudinary";
+import "../config/cloudinary.js";
+import uploadToCloudinary from "../utils/uploadToCloudinary.js";
 
 export const createProduct: RequestHandler = asyncHandler(
-    async (req, res) => {
-        const authUser = req.authUser;
+  async (req, res) => {
+    const authUser = req.authUser;
 
-        if (!authUser) {
-            throw new HttpError(401, "Authentication required");
-        }
-
-        const input = req.body as CreateProductInput;
-
-        const product = await Product.create({
-            name: input.name,
-
-            // With exactOptionalPropertyTypes, omit absent optional fields.
-            ...(input.description !== undefined
-                ? { description: input.description }
-                : {}),
-
-            category: input.category,
-            unit: input.unit,
-            price: input.price,
-            stockQuantity: input.stockQuantity,
-
-            // Convert the authenticated user's ID to a MongoDB ObjectId.
-            sellerId: new Types.ObjectId(authUser.id),
-
-            // The client cannot choose the initial status.
-            status: "DRAFT",
-        });
-
-        res.status(201).json({
-            success: true,
-            message: "Product created successfully",
-            data: {
-                product: {
-                    id: product._id.toString(),
-                    sellerId: product.sellerId.toString(),
-                    name: product.name,
-                    description: product.description,
-                    category: product.category,
-                    unit: product.unit,
-                    price: product.price,
-                    stockQuantity: product.stockQuantity,
-                    status: product.status,
-                    createdAt: product.createdAt,
-                    updatedAt: product.updatedAt,
-                },
-            },
-        });
+    if (!authUser) {
+      throw new HttpError(401, "Authentication required");
     }
+
+    const input = req.body as CreateProductInput;
+
+    let uploadedImage: {
+      url: string;
+      publicId: string;
+    } | null = null;
+
+    if (req.file) {
+      uploadedImage = await uploadToCloudinary(req.file.buffer);
+    }
+
+    let product;
+
+    try {
+      product = await Product.create({
+        name: input.name,
+
+        ...(input.description !== undefined
+          ? { description: input.description }
+          : {}),
+
+        category: input.category,
+        unit: input.unit,
+        price: input.price,
+        stockQuantity: input.stockQuantity,
+
+        image: uploadedImage?.url ?? "",
+        imagePublicId: uploadedImage?.publicId ?? "",
+
+        sellerId: new Types.ObjectId(authUser.id),
+        status: "DRAFT",
+      });
+    } catch (error) {
+      if (uploadedImage) {
+        try {
+          await cloudinary.uploader.destroy(
+            uploadedImage.publicId
+          );
+        } catch (cleanupError) {
+          console.error(
+            "Cloudinary cleanup failed:",
+            cleanupError
+          );
+        }
+      }
+
+      throw error;
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Product created successfully",
+      data: {
+        product: {
+          id: product._id.toString(),
+          sellerId: product.sellerId.toString(),
+          name: product.name,
+          description: product.description,
+          category: product.category,
+          unit: product.unit,
+          price: product.price,
+          stockQuantity: product.stockQuantity,
+          image: product.image,
+          status: product.status,
+          createdAt: product.createdAt,
+          updatedAt: product.updatedAt,
+        },
+      },
+    });
+  }
 );
 
 // Public: list active products
@@ -119,24 +150,22 @@ export const getProducts: RequestHandler = asyncHandler(
     }
 
     // Only active accounts with approved seller applications can sell.
-    const eligibleSellers = await User.find({
-      status: "ACTIVE",
-      sellerApprovalStatus: "APPROVED",
-    })
-      .select("_id")
-      .lean();
+    const eligibleSellerIds = await User.distinct("_id", {
+  status: "ACTIVE",
+  sellerApprovalStatus: "APPROVED",
+});
 
     const filter: {
-      status: "ACTIVE";
-      sellerId: { $in: Types.ObjectId[] };
-      category?: string;
-      unit?: ProductUnit;
-    } = {
-      status: "ACTIVE",
-      sellerId: {
-        $in: eligibleSellers.map((seller) => seller._id),
-      },
-    };
+  status: "ACTIVE";
+  sellerId: { $in: Types.ObjectId[] };
+  category?: string;
+  unit?: ProductUnit;
+} = {
+  status: "ACTIVE",
+  sellerId: {
+    $in: eligibleSellerIds as Types.ObjectId[],
+  },
+};
 
     if (categoryParam) {
       filter.category = categoryParam;
@@ -169,6 +198,7 @@ export const getProducts: RequestHandler = asyncHandler(
           unit: product.unit,
           price: product.price,
           stockQuantity: product.stockQuantity,
+          image: product.image ?? "",
           createdAt: product.createdAt,
         })),
         pagination: {
@@ -238,6 +268,7 @@ export const getMyProducts: RequestHandler = asyncHandler(
           unit: product.unit,
           price: product.price,
           stockQuantity: product.stockQuantity,
+          image: product.image ?? "",
           status: product.status,
           createdAt: product.createdAt,
           updatedAt: product.updatedAt,
@@ -255,6 +286,7 @@ export const getMyProducts: RequestHandler = asyncHandler(
 
 
 // Private: update a product of the authenticated seller
+
 export const updateProduct: RequestHandler = asyncHandler(
   async (req, res) => {
     const authUser = req.authUser;
@@ -274,22 +306,60 @@ export const updateProduct: RequestHandler = asyncHandler(
 
     const input = req.body as UpdateProductInput;
 
-    const product = await Product.findOneAndUpdate(
-      {
-        _id: new Types.ObjectId(productId),
-        sellerId: new Types.ObjectId(authUser.id),
-      },
-      {
-        $set: input,
-      },
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
+    const product = await Product.findOne({
+      _id: new Types.ObjectId(productId),
+      sellerId: new Types.ObjectId(authUser.id),
+    });
 
     if (!product) {
       throw new HttpError(404, "Product not found");
+    }
+
+    let uploadedImage: {
+      url: string;
+      publicId: string;
+    } | null = null;
+
+    if (req.file) {
+      uploadedImage = await uploadToCloudinary(req.file.buffer);
+    }
+
+    const oldImagePublicId = product.imagePublicId;
+
+    try {
+      Object.assign(product, input);
+
+      if (uploadedImage) {
+        product.image = uploadedImage.url;
+        product.imagePublicId = uploadedImage.publicId;
+      }
+
+      await product.save();
+    } catch (error) {
+      if (uploadedImage) {
+        try {
+          await cloudinary.uploader.destroy(
+            uploadedImage.publicId
+          );
+        } catch (cleanupError) {
+          console.error("Cloudinary cleanup failed:", cleanupError);
+        }
+      }
+
+      throw error;
+    }
+
+    // Delete the old image only after the database update succeeds.
+    if (
+      uploadedImage &&
+      oldImagePublicId &&
+      oldImagePublicId !== uploadedImage.publicId
+    ) {
+      try {
+        await cloudinary.uploader.destroy(oldImagePublicId);
+      } catch (cleanupError) {
+        console.error("Old Cloudinary image cleanup failed:", cleanupError);
+      }
     }
 
     res.status(200).json({
@@ -305,6 +375,7 @@ export const updateProduct: RequestHandler = asyncHandler(
           unit: product.unit,
           price: product.price,
           stockQuantity: product.stockQuantity,
+          image: product.image ?? "",
           status: product.status,
           createdAt: product.createdAt,
           updatedAt: product.updatedAt,
